@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
 
 COPY src/ ./src/
+COPY changes/ ./changes/
 
 EXPOSE 8000
 

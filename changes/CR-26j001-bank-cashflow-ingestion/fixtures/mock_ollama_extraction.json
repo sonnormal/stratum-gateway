@@ -1,0 +1,11 @@
+{
+  "bank_code": "VIB",
+  "account_number_mask": "*4321",
+  "transaction_type": "DEBIT",
+  "amount": 75000,
+  "currency": "VND",
+  "description": "Thanh toan Highlands Coffee",
+  "counterparty": "Highlands Coffee",
+  "category": "Food & Beverage",
+  "raw_amount_string": "75,000"
+}

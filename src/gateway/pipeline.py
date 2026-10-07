@@ -45,12 +45,20 @@ class GatewayPipeline:
 
         # Step 5: Canonical Contract Event Construction
         event_id = str(uuid.uuid4())
+        raw_tx_type = str(extracted.get("transaction_type", "")).upper()
+        if "CREDIT" in raw_tx_type or "NHAN" in raw_tx_type or "CONG" in raw_tx_type:
+            normalized_tx_type = "CREDIT"
+        else:
+            normalized_tx_type = "DEBIT"
+
+        bank_code = str(extracted.get("bank_code") or "VIB").strip().upper()
+
         event_payload = {
             "event_id": event_id,
             "occurred_at": email.occurred_at.isoformat(),
-            "bank_code": extracted.get("bank_code", "VIB"),
+            "bank_code": bank_code,
             "account_number_mask": extracted.get("account_number_mask"),
-            "transaction_type": extracted.get("transaction_type", "DEBIT"),
+            "transaction_type": normalized_tx_type,
             "amount": extracted["amount"],
             "currency": extracted.get("currency", "VND"),
             "remaining_balance": extracted.get("remaining_balance"),

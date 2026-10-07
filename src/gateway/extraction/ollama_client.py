@@ -5,8 +5,9 @@ import httpx
 
 EXTRACTION_PROMPT = (
     "You are a financial document parser. Extract bank alert details from the text below "
-    "into pure JSON with keys: bank_code, account_number_mask, transaction_type, "
-    "amount (positive number), currency, description, counterparty, category."
+    "into pure JSON with keys: bank_code (e.g. VIB), account_number_mask (e.g. *4321), "
+    "transaction_type (strictly either DEBIT or CREDIT), amount (positive number), "
+    "currency (e.g. VND), description, counterparty, category."
 )
 
 
@@ -24,7 +25,7 @@ class OllamaExtractionClient:
         self,
         host_url: str = "http://localhost:11434",
         model: str = "qwen3.6:27b",
-        timeout: float = 90.0,
+        timeout: float = 300.0,
     ) -> None:
         self.host_url = host_url.rstrip("/")
         self.model = model
@@ -37,7 +38,6 @@ class OllamaExtractionClient:
                 {"role": "system", "content": EXTRACTION_PROMPT},
                 {"role": "user", "content": body_text},
             ],
-            "format": "json",
             "stream": False,
         }
 

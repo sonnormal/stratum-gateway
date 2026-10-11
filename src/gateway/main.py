@@ -1,3 +1,4 @@
+import asyncio
 import os
 from pathlib import Path
 
@@ -36,7 +37,7 @@ def create_app() -> FastAPI:
     async def ingest_email(request: Request) -> JSONResponse:
         raw_bytes = await request.body()
         active_pipeline: GatewayPipeline = getattr(request.app.state, "pipeline", pipeline)
-        result = active_pipeline.process_raw_email(raw_bytes)
+        result = await asyncio.to_thread(active_pipeline.process_raw_email, raw_bytes)
         return JSONResponse(status_code=200, content=result.model_dump())
 
     @app.post("/api/v1/batch/simulate")

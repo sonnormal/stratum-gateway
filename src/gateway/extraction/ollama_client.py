@@ -38,6 +38,7 @@ class OllamaExtractionClient:
                 {"role": "system", "content": EXTRACTION_PROMPT},
                 {"role": "user", "content": body_text},
             ],
+            "format": "json",
             "stream": False,
         }
 

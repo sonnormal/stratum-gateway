@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from gateway.egress.cashflow_client import CashflowClient
 from gateway.egress.viber_client import ViberClient, format_viber_alert_message
-from gateway.extraction.guardrail import verify_verbatim_amount
+from gateway.extraction.guardrail import GuardrailViolationError, verify_verbatim_amount
 from gateway.extraction.ollama_client import OllamaExtractionClient
 from gateway.ingress.filter import is_bank_transaction_email
 from gateway.ingress.mime_parser import parse_mime_email
@@ -37,11 +37,16 @@ class GatewayPipeline:
         if not is_bank_transaction_email(email):
             return PipelineResult(processed=False, skip_reason="NOT_BANK_ALERT")
 
-        # Step 3: LLM Extraction
-        extracted: dict[str, Any] = self.extractor.extract(email.body_text)
-
-        # Step 4: Deterministic Guardrail
-        verify_verbatim_amount(amount=extracted["amount"], body=email.body_text)
+        # Step 3: LLM Extraction & Step 4: Guardrail
+        try:
+            extracted: dict[str, Any] = self.extractor.extract(email.body_text)
+            if "amount" not in extracted or not extracted["amount"]:
+                return PipelineResult(processed=False, skip_reason="AMOUNT_NOT_FOUND")
+            verify_verbatim_amount(amount=extracted["amount"], body=email.body_text)
+        except GuardrailViolationError:
+            return PipelineResult(processed=False, skip_reason="GUARDRAIL_VIOLATION")
+        except Exception as e:
+            return PipelineResult(processed=False, skip_reason=f"EXTRACTION_FAILED: {type(e).__name__}")
 
         # Step 5: Canonical Contract Event Construction
         event_id = str(uuid.uuid4())
@@ -69,13 +74,19 @@ class GatewayPipeline:
         }
 
         # Step 6: Post to Downstream Cashflow Core
-        cashflow_res = self.cashflow_client.post_movement(event_payload)
-        movement_status = cashflow_res.get("status", "UNKNOWN")
+        try:
+            cashflow_res = self.cashflow_client.post_movement(event_payload)
+            movement_status = cashflow_res.get("status", "UNKNOWN")
+        except Exception as e:
+            return PipelineResult(processed=False, skip_reason=f"DOWNSTREAM_ERROR: {type(e).__name__}")
 
         # Step 7: Push Viber Alert (if new movement)
         if movement_status == "RECORDED":
-            message = format_viber_alert_message(event_payload)
-            self.viber_client.send_alert(message)
+            try:
+                message = format_viber_alert_message(event_payload)
+                self.viber_client.send_alert(message)
+            except Exception:
+                pass
 
         return PipelineResult(
             processed=True,

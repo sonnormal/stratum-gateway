@@ -40,6 +40,7 @@ class OllamaExtractionClient:
             ],
             "format": "json",
             "stream": False,
+            "think": False,
         }
 
         with httpx.Client(timeout=self.timeout) as client:

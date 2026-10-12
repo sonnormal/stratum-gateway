@@ -32,7 +32,7 @@ class GatewayPipeline:
         self.notification_client = notification_client or viber_client or TelegramClient()
         self.viber_client = self.notification_client
 
-    def process_raw_email(self, raw_bytes: bytes) -> PipelineResult:
+    def process_raw_email(self, raw_bytes: bytes, dispatch_alert: bool = True) -> PipelineResult:
         # Step 1: Parse MIME
         email = parse_mime_email(raw_bytes)
 
@@ -84,7 +84,7 @@ class GatewayPipeline:
             return PipelineResult(processed=False, skip_reason=f"DOWNSTREAM_ERROR: {type(e).__name__}")
 
         # Step 7: Push Mobile Notification (Telegram)
-        if movement_status == "RECORDED":
+        if movement_status == "RECORDED" and dispatch_alert:
             try:
                 message = format_telegram_alert_message(event_payload)
                 self.notification_client.send_alert(message)

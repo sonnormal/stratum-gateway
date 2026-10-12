@@ -34,10 +34,12 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     @app.post("/api/v1/ingest/email")
-    async def ingest_email(request: Request) -> JSONResponse:
+    async def ingest_email(request: Request, dispatch_alert: bool = True) -> JSONResponse:
         raw_bytes = await request.body()
         active_pipeline: GatewayPipeline = getattr(request.app.state, "pipeline", pipeline)
-        result = await asyncio.to_thread(active_pipeline.process_raw_email, raw_bytes)
+        result = await asyncio.to_thread(
+            active_pipeline.process_raw_email, raw_bytes, dispatch_alert
+        )
         return JSONResponse(status_code=200, content=result.model_dump())
 
     @app.post("/api/v1/batch/simulate")

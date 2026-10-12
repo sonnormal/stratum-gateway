@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from gateway.egress.cashflow_client import CashflowClient
-from gateway.egress.viber_client import ViberClient
+from gateway.egress.telegram_client import TelegramClient
 from gateway.extraction.ollama_client import OllamaExtractionClient
 from gateway.pipeline import GatewayPipeline
 
@@ -20,12 +20,12 @@ def create_app() -> FastAPI:
 
     extractor = OllamaExtractionClient(host_url=ollama_url, model=ollama_model)
     cashflow_client = CashflowClient(base_url=cashflow_url)
-    viber_client = ViberClient()
+    notification_client = TelegramClient()
 
     pipeline = GatewayPipeline(
         extractor=extractor,
         cashflow_client=cashflow_client,
-        viber_client=viber_client,
+        notification_client=notification_client,
     )
     app.state.pipeline = pipeline
 

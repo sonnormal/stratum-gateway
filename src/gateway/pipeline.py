@@ -4,6 +4,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from gateway.egress.cashflow_client import CashflowClient
+from gateway.egress.telegram_client import TelegramClient, format_telegram_alert_message
 from gateway.egress.viber_client import ViberClient, format_viber_alert_message
 from gateway.extraction.guardrail import GuardrailViolationError, verify_verbatim_amount
 from gateway.extraction.ollama_client import OllamaExtractionClient
@@ -23,11 +24,13 @@ class GatewayPipeline:
         self,
         extractor: Any | None = None,
         cashflow_client: Any | None = None,
+        notification_client: Any | None = None,
         viber_client: Any | None = None,
     ) -> None:
         self.extractor = extractor or OllamaExtractionClient()
         self.cashflow_client = cashflow_client or CashflowClient()
-        self.viber_client = viber_client or ViberClient()
+        self.notification_client = notification_client or viber_client or TelegramClient()
+        self.viber_client = self.notification_client
 
     def process_raw_email(self, raw_bytes: bytes) -> PipelineResult:
         # Step 1: Parse MIME
@@ -80,11 +83,11 @@ class GatewayPipeline:
         except Exception as e:
             return PipelineResult(processed=False, skip_reason=f"DOWNSTREAM_ERROR: {type(e).__name__}")
 
-        # Step 7: Push Viber Alert (if new movement)
+        # Step 7: Push Mobile Notification (Telegram)
         if movement_status == "RECORDED":
             try:
-                message = format_viber_alert_message(event_payload)
-                self.viber_client.send_alert(message)
+                message = format_telegram_alert_message(event_payload)
+                self.notification_client.send_alert(message)
             except Exception:
                 pass
 

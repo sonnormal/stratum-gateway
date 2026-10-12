@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import httpx
@@ -26,12 +27,16 @@ def format_viber_alert_message(event: dict[str, Any]) -> str:
 class ViberClient:
     def __init__(
         self,
-        auth_token: str = "",
-        default_receiver: str = "+84981801931",
+        auth_token: str | None = None,
+        default_receiver: str | None = None,
         timeout: float = 10.0,
     ) -> None:
-        self.auth_token = auth_token
-        self.default_receiver = default_receiver
+        self.auth_token = auth_token if auth_token is not None else os.getenv("VIBER_AUTH_TOKEN", "")
+        self.default_receiver = (
+            default_receiver
+            if default_receiver is not None
+            else os.getenv("VIBER_RECEIVER_ID", os.getenv("VIBER_RECEIVER", "+84981801931"))
+        )
         self.timeout = timeout
 
     def send_alert(self, message: str, receiver_id: str | None = None) -> bool:
